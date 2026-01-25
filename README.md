@@ -209,9 +209,38 @@ python3 run_pageindex.py --pdf_path document.pdf --model openai/gpt-4o-mini
 
 For multi-document workflows, PageIndex provides tools to manage document collections with batch ingestion, incremental sync, and collection-based retrieval.
 
+### Understanding Collections
+
+A **collection** is a folder containing indexed documents about a related topic. Each collection is independent and self-contained. If you have multiple disjunct topics, create a separate collection for each:
+
+```
+collections/
+├── financial_reports/          # Collection 1: Annual reports, earnings
+│   ├── 10K_2023_structure.json
+│   ├── 10K_2024_structure.json
+│   ├── Q1_2024_structure.json
+│   └── _collection_manifest.json
+│
+├── legal_contracts/            # Collection 2: Contracts, agreements
+│   ├── vendor_agreement_structure.json
+│   ├── employment_contract_structure.json
+│   └── _collection_manifest.json
+│
+└── research_papers/            # Collection 3: Academic papers
+    ├── machine_learning_structure.json
+    ├── deep_learning_structure.json
+    └── _collection_manifest.json
+```
+
+**Why separate collections?**
+- **Faster retrieval**: Queries only search relevant documents
+- **Better accuracy**: LLM document selection works best with topically related documents
+- **Easier maintenance**: Sync and update each topic independently
+- **Clear organization**: Maps to how you organize source documents
+
 ### Batch Ingestion
 
-Ingest all PDFs/Markdown files from a folder into a collection:
+Ingest all PDFs/Markdown files from a source folder into a collection:
 
 ```bash
 python3 run_collection.py \
@@ -299,6 +328,73 @@ python3 run_retrieval.py \
 | `--doc` | Search specific document ID |
 | `--output` | `text` (human readable) or `json` (machine readable) |
 | `--model` | LLM model to use |
+</details>
+
+<details>
+<summary><strong>Complete multi-collection workflow example</strong></summary>
+<br>
+
+**Step 1: Organize your source documents by topic**
+```
+source_documents/
+├── financial/
+│   ├── annual_report_2023.pdf
+│   ├── annual_report_2024.pdf
+│   └── q1_earnings_2024.pdf
+├── legal/
+│   ├── vendor_agreement.pdf
+│   └── nda_template.pdf
+└── research/
+    ├── ml_overview.md
+    └── transformer_architecture.md
+```
+
+**Step 2: Create a collection for each topic**
+```bash
+# Create financial reports collection
+python3 run_collection.py \
+  --input-dir ./source_documents/financial \
+  --output-dir ./collections/financial \
+  --ingest
+
+# Create legal documents collection
+python3 run_collection.py \
+  --input-dir ./source_documents/legal \
+  --output-dir ./collections/legal \
+  --ingest
+
+# Create research papers collection
+python3 run_collection.py \
+  --input-dir ./source_documents/research \
+  --output-dir ./collections/research \
+  --ingest
+```
+
+**Step 3: Query the appropriate collection**
+```bash
+# Financial question → query financial collection
+python3 run_retrieval.py \
+  --collection-dir ./collections/financial \
+  --query "What was the revenue growth in 2024?"
+
+# Legal question → query legal collection
+python3 run_retrieval.py \
+  --collection-dir ./collections/legal \
+  --query "What are the termination clauses?"
+
+# Research question → query research collection
+python3 run_retrieval.py \
+  --collection-dir ./collections/research \
+  --query "How does the attention mechanism work?"
+```
+
+**Step 4: Keep collections in sync when source documents change**
+```bash
+# After adding/modifying/deleting source files, sync each collection
+python3 run_collection.py --input-dir ./source_documents/financial --output-dir ./collections/financial --sync
+python3 run_collection.py --input-dir ./source_documents/legal --output-dir ./collections/legal --sync
+python3 run_collection.py --input-dir ./source_documents/research --output-dir ./collections/research --sync
+```
 </details>
 
 <!-- 
