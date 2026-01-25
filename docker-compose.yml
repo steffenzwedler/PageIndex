@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  pageindex-mcp:
+    build: .
+    container_name: pageindex-mcp
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your source documents and collections
+      - ./data/sources:/data/sources
+      - ./data/collections:/data/collections
+    environment:
+      # Required: Set your API key (OpenAI or OpenRouter)
+      - CHATGPT_API_KEY=${CHATGPT_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # Optional: Default model
+      - PAGEINDEX_MODEL=${PAGEINDEX_MODEL:-gpt-4o-2024-11-20}
+      # Collections directory (inside container)
+      - PAGEINDEX_COLLECTIONS_DIR=/data/collections
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+# Example: Add to existing n8n docker-compose
+# services:
+#   n8n:
+#     image: n8nio/n8n
+#     ...
+#     environment:
+#       - PAGEINDEX_MCP_URL=http://pageindex-mcp:8000
+#     depends_on:
+#       - pageindex-mcp
