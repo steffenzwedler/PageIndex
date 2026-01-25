@@ -18,17 +18,37 @@ from pathlib import Path
 from types import SimpleNamespace as config
 
 CHATGPT_API_KEY = os.getenv("CHATGPT_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+# Use OpenRouter if available, otherwise use OpenAI
+def get_api_config():
+    """Get API key and base URL, preferring OpenRouter if available."""
+    if OPENROUTER_API_KEY:
+        return OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+    return CHATGPT_API_KEY, None
 
 def count_tokens(text, model=None):
     if not text:
         return 0
-    enc = tiktoken.encoding_for_model(model)
+    # Handle OpenRouter model names (e.g., "openai/gpt-4o-mini" -> "gpt-4o-mini")
+    if model and "/" in model:
+        model = model.split("/")[-1]
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fallback to cl100k_base for unknown models (works for GPT-4 family)
+        enc = tiktoken.get_encoding("cl100k_base")
     tokens = enc.encode(text)
     return len(tokens)
 
-def ChatGPT_API_with_finish_reason(model, prompt, api_key=CHATGPT_API_KEY, chat_history=None):
+def ChatGPT_API_with_finish_reason(model, prompt, api_key=None, chat_history=None):
     max_retries = 10
-    client = openai.OpenAI(api_key=api_key)
+    if api_key is None:
+        api_key, base_url = get_api_config()
+    else:
+        base_url = OPENROUTER_BASE_URL if OPENROUTER_API_KEY else None
+    client = openai.OpenAI(api_key=api_key, base_url=base_url) if base_url else openai.OpenAI(api_key=api_key)
     for i in range(max_retries):
         try:
             if chat_history:
@@ -58,9 +78,13 @@ def ChatGPT_API_with_finish_reason(model, prompt, api_key=CHATGPT_API_KEY, chat_
 
 
 
-def ChatGPT_API(model, prompt, api_key=CHATGPT_API_KEY, chat_history=None):
+def ChatGPT_API(model, prompt, api_key=None, chat_history=None):
     max_retries = 10
-    client = openai.OpenAI(api_key=api_key)
+    if api_key is None:
+        api_key, base_url = get_api_config()
+    else:
+        base_url = OPENROUTER_BASE_URL if OPENROUTER_API_KEY else None
+    client = openai.OpenAI(api_key=api_key, base_url=base_url) if base_url else openai.OpenAI(api_key=api_key)
     for i in range(max_retries):
         try:
             if chat_history:
@@ -86,12 +110,19 @@ def ChatGPT_API(model, prompt, api_key=CHATGPT_API_KEY, chat_history=None):
                 return "Error"
             
 
-async def ChatGPT_API_async(model, prompt, api_key=CHATGPT_API_KEY):
+async def ChatGPT_API_async(model, prompt, api_key=None):
     max_retries = 10
+    if api_key is None:
+        api_key, base_url = get_api_config()
+    else:
+        base_url = OPENROUTER_BASE_URL if OPENROUTER_API_KEY else None
     messages = [{"role": "user", "content": prompt}]
     for i in range(max_retries):
         try:
-            async with openai.AsyncOpenAI(api_key=api_key) as client:
+            client_kwargs = {"api_key": api_key}
+            if base_url:
+                client_kwargs["base_url"] = base_url
+            async with openai.AsyncOpenAI(**client_kwargs) as client:
                 response = await client.chat.completions.create(
                     model=model,
                     messages=messages,
