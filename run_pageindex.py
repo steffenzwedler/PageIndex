@@ -9,6 +9,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process PDF or Markdown document and generate structure')
     parser.add_argument('--pdf_path', type=str, help='Path to the PDF file')
     parser.add_argument('--md_path', type=str, help='Path to the Markdown file')
+    parser.add_argument('--output-dir', type=str, default='./results',
+                      help='Output directory for the structure JSON (use for collections, e.g., ./results/financial_reports)')
 
     parser.add_argument('--model', type=str, default='gpt-4o-2024-11-20', help='Model to use')
 
@@ -68,8 +70,8 @@ if __name__ == "__main__":
         print('Parsing done, saving to file...')
         
         # Save results
-        pdf_name = os.path.splitext(os.path.basename(args.pdf_path))[0]    
-        output_dir = './results'
+        pdf_name = os.path.splitext(os.path.basename(args.pdf_path))[0]
+        output_dir = args.output_dir
         output_file = f'{output_dir}/{pdf_name}_structure.json'
         os.makedirs(output_dir, exist_ok=True)
         
@@ -122,8 +124,8 @@ if __name__ == "__main__":
         print('Parsing done, saving to file...')
         
         # Save results
-        md_name = os.path.splitext(os.path.basename(args.md_path))[0]    
-        output_dir = './results'
+        md_name = os.path.splitext(os.path.basename(args.md_path))[0]
+        output_dir = args.output_dir
         output_file = f'{output_dir}/{md_name}_structure.json'
         os.makedirs(output_dir, exist_ok=True)
         
