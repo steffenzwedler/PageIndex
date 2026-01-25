@@ -29,10 +29,13 @@ PageIndex **intentionally does not use databases or vector stores**. This is a c
 
 ### LLM Service (Only External Backend)
 
-- **Provider**: OpenAI API
-- **Environment Variable**: `CHATGPT_API_KEY`
+- **Provider**: OpenAI API or OpenRouter
+- **Environment Variables**:
+  - `CHATGPT_API_KEY` for OpenAI direct
+  - `OPENROUTER_API_KEY` for OpenRouter (auto-detected, takes precedence)
 - **Default Model**: `gpt-4o-2024-11-20`
 - **Configurable**: Yes, via `--model` CLI parameter
+- **OpenRouter Usage**: Use provider-prefixed model names, e.g., `openai/gpt-4o-mini`
 
 ### No Database Libraries
 
