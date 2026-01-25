@@ -52,6 +52,24 @@ The project has no database drivers in `requirements.txt`:
 
 ## CLI Usage for Collections
 
+### Understanding Collections
+
+A **collection** = one folder containing indexed documents about a related topic.
+
+**One collection per topic** - if you have disjunct topics, create separate collections:
+
+```
+collections/
+├── financial_reports/     # Query with: --collection-dir ./collections/financial_reports
+├── legal_contracts/       # Query with: --collection-dir ./collections/legal_contracts
+└── research_papers/       # Query with: --collection-dir ./collections/research_papers
+```
+
+**Why separate?**
+- Faster retrieval (smaller search space)
+- Better accuracy (LLM selects from related docs)
+- Independent sync/maintenance per topic
+
 ### Batch Ingestion: Create Collection from Folder
 
 Use `run_collection.py` to ingest an entire folder of PDFs/Markdown files:
