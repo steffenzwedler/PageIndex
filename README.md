@@ -187,6 +187,120 @@ python3 run_pageindex.py --md_path /path/to/your/document.md
 > Note: in this function, we use "#" to determine node heading and their levels. For example, "##" is level 2, "###" is level 3, etc. Make sure your markdown file is formatted correctly. If your Markdown file was converted from a PDF or HTML, we don't recommend using this function, since most existing conversion tools cannot preserve the original hierarchy. Instead, use our [PageIndex OCR](https://pageindex.ai/blog/ocr), which is designed to preserve the original hierarchy, to convert the PDF to a markdown file and then use this function.
 </details>
 
+<details>
+<summary><strong>OpenRouter API support</strong></summary>
+<br>
+You can use OpenRouter as an alternative API provider. Set the `OPENROUTER_API_KEY` environment variable:
+
+```bash
+OPENROUTER_API_KEY=your_openrouter_key_here
+```
+
+Then use OpenRouter model names with the provider prefix:
+
+```bash
+python3 run_pageindex.py --pdf_path document.pdf --model openai/gpt-4o-mini
+```
+</details>
+
+---
+
+# 📚 Collection Management
+
+For multi-document workflows, PageIndex provides tools to manage document collections with batch ingestion, incremental sync, and collection-based retrieval.
+
+### Batch Ingestion
+
+Ingest all PDFs/Markdown files from a folder into a collection:
+
+```bash
+python3 run_collection.py \
+  --input-dir ./source_documents/financial \
+  --output-dir ./collections/financial_reports \
+  --ingest
+```
+
+### Incremental Sync
+
+When source files change, sync the collection instead of re-ingesting everything:
+
+```bash
+python3 run_collection.py \
+  --input-dir ./source_documents/financial \
+  --output-dir ./collections/financial_reports \
+  --sync
+```
+
+This will:
+- **Add** new files that were added to the source folder
+- **Update** files that were modified (detected via file hash)
+- **Remove** structure files for documents deleted from source
+
+### Collection Status
+
+Check what's in a collection and see pending changes:
+
+```bash
+python3 run_collection.py \
+  --input-dir ./source_documents/financial \
+  --output-dir ./collections/financial_reports \
+  --status
+```
+
+### Collection-Based Retrieval
+
+Query documents within a collection using LLM-powered document selection and tree search:
+
+```bash
+# Auto-select relevant documents, then tree search
+python3 run_retrieval.py \
+  --collection-dir ./collections/financial_reports \
+  --query "What was the revenue growth year-over-year?"
+
+# Search all documents in the collection
+python3 run_retrieval.py \
+  --collection-dir ./collections/financial_reports \
+  --query "What are the risk factors?" \
+  --mode all
+
+# Search a specific document
+python3 run_retrieval.py \
+  --collection-dir ./collections/financial_reports \
+  --query "CEO message" \
+  --doc Annual_Report_2023
+
+# Get JSON output for programmatic use
+python3 run_retrieval.py \
+  --collection-dir ./collections/financial_reports \
+  --query "Revenue breakdown" \
+  --output json
+```
+
+<details>
+<summary><strong>Collection management parameters</strong></summary>
+<br>
+
+**run_collection.py:**
+| Parameter | Description |
+|-----------|-------------|
+| `--input-dir` | Source folder with PDF/Markdown files |
+| `--output-dir` | Collection output directory |
+| `--ingest` | Full re-index of all source files |
+| `--sync` | Incremental update (add/update/remove) |
+| `--status` | Show collection status and pending changes |
+| `--model` | LLM model to use (default: gpt-4o-2024-11-20) |
+
+**run_retrieval.py:**
+| Parameter | Description |
+|-----------|-------------|
+| `--collection-dir` | Path to collection folder |
+| `--query` | Search query |
+| `--mode` | `select` (LLM picks relevant docs) or `all` (search all) |
+| `--doc` | Search specific document ID |
+| `--output` | `text` (human readable) or `json` (machine readable) |
+| `--model` | LLM model to use |
+</details>
+
 <!-- 
 # ☁️ Improved Tree Generation with PageIndex OCR
 
