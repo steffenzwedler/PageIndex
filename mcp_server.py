@@ -94,6 +94,19 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["collection", "query"]
             }
+        ),
+        Tool(
+            name="ingest_document",
+            description="Ingest a single document into a collection",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Path to PDF or Markdown file"},
+                    "collection": {"type": "string", "description": "Target collection name"},
+                    "model": {"type": "string", "description": "LLM model to use", "default": DEFAULT_MODEL}
+                },
+                "required": ["file_path", "collection"]
+            }
         )
     ]
 
@@ -275,6 +288,36 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
         return [TextContent(type="text", text=json.dumps(results, indent=2))]
 
+    elif name == "ingest_document":
+        file_path = arguments["file_path"]
+        collection_dir = get_collection_path(arguments["collection"])
+        model = arguments.get("model", DEFAULT_MODEL)
+
+        if not os.path.isfile(file_path):
+            return [TextContent(type="text", text=json.dumps({"error": f"File not found: {file_path}"}))]
+
+        os.makedirs(collection_dir, exist_ok=True)
+        manifest = load_manifest(collection_dir)
+        args = MockArgs(model)
+
+        doc_id = os.path.splitext(os.path.basename(file_path))[0]
+
+        try:
+            ingest_file(file_path, collection_dir, args)
+            manifest["files"][doc_id] = get_file_info(file_path)
+            save_manifest(collection_dir, manifest)
+            return [TextContent(type="text", text=json.dumps({
+                "doc_id": doc_id,
+                "status": "success",
+                "collection": arguments["collection"]
+            }))]
+        except Exception as e:
+            return [TextContent(type="text", text=json.dumps({
+                "doc_id": doc_id,
+                "status": "error",
+                "error": str(e)
+            }))]
+
     return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
@@ -293,9 +336,40 @@ def create_sse_app():
     async def health(request):
         return JSONResponse({"status": "ok", "server": "pageindex-mcp"})
 
+    async def call_tool_http(request):
+        """Direct HTTP endpoint for tool calls (for n8n integration)."""
+        try:
+            body = await request.json()
+            tool_name = body.get("name")
+            arguments = body.get("arguments", {})
+
+            if not tool_name:
+                return JSONResponse({"error": "Missing tool name"}, status_code=400)
+
+            result = await call_tool(tool_name, arguments)
+
+            # Extract text content
+            if result and len(result) > 0:
+                text = result[0].text
+                try:
+                    return JSONResponse(json.loads(text))
+                except json.JSONDecodeError:
+                    return JSONResponse({"result": text})
+
+            return JSONResponse({"result": None})
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    async def list_tools_http(request):
+        """List available tools."""
+        tools = await list_tools()
+        return JSONResponse([{"name": t.name, "description": t.description} for t in tools])
+
     return Starlette(
         routes=[
             Route("/health", health),
+            Route("/tools", list_tools_http),
+            Route("/call_tool", call_tool_http, methods=["POST"]),
             Route("/sse", handle_sse),
             Route("/messages/", handle_messages, methods=["POST"]),
         ]

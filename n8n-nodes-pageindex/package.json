@@ -1,0 +1,38 @@
+{
+  "name": "n8n-nodes-pageindex",
+  "version": "0.1.0",
+  "description": "Self-contained reasoning-based RAG node for n8n. No vector DB, no external server.",
+  "keywords": ["n8n-community-node-package", "n8n", "pageindex", "rag", "retrieval", "reasoning"],
+  "license": "MIT",
+  "homepage": "https://github.com/steffenzwedler/PageIndex",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steffenzwedler/PageIndex.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "node -e \"require('fs').cpSync('nodes/PageIndex/pageindex.svg','dist/nodes/PageIndex/pageindex.svg')\"",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "files": ["dist"],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": ["dist/credentials/PageIndexApi.credentials.js"],
+    "nodes": ["dist/nodes/PageIndex/PageIndex.node.js"]
+  },
+  "dependencies": {
+    "gpt-tokenizer": "^2.8.0",
+    "openai": "^4.0.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "n8n-workflow": "*",
+    "typescript": "~5.4.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
